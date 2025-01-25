@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        @keyframes glitchAnimation {
+            0% { transform: translate(0) }
+            20% { transform: translate(-2px, 2px) }
+            40% { transform: translate(-2px, -2px) }
+            60% { transform: translate(2px, 2px) }
+            80% { transform: translate(2px, -2px) }
+            100% { transform: translate(0) }
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%) }
+            100% { transform: translateY(100%) }
+        }
+
+        @keyframes textGlitch {
+            0% { clip-path: inset(40% 0 61% 0); }
+            20% { clip-path: inset(92% 0 1% 0); }
+            40% { clip-path: inset(43% 0 1% 0); }
+            60% { clip-path: inset(25% 0 58% 0); }
+            80% { clip-path: inset(54% 0 7% 0); }
+            100% { clip-path: inset(58% 0 43% 0); }
+        }
+
+        :root {
+            --main-bg: #000000;
+            --text-primary: #00ff00;
+            --text-secondary: #20b2aa;
+            --border-color: #808080;
+            --window-bg: #000080;
+            --window-header: #000080;
+            --window-title: #ffffff;
+            --button-face: #c0c0c0;
+            --button-highlight: #ffffff;
+            --button-shadow: #808080;
+            --scrollbar-thumb: #c0c0c0;
+        }
+
+        @keyframes backgroundShift {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 0% 0%; }
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.92; }
+            5% { opacity: 0.9; }
+            10% { opacity: 0.92; }
+            15% { opacity: 0.9; }
+            20% { opacity: 0.92; }
+            25% { opacity: 0.85; }
+            30% { opacity: 0.92; }
+            35% { opacity: 0.86; }
+            40% { opacity: 0.92; }
+            45% { opacity: 0.88; }
+            50% { opacity: 0.92; }
+            55% { opacity: 0.9; }
+            60% { opacity: 0.92; }
+            65% { opacity: 0.89; }
+            70% { opacity: 0.92; }
+            75% { opacity: 0.87; }
+            80% { opacity: 0.92; }
+            85% { opacity: 0.89; }
+            90% { opacity: 0.92; }
+            95% { opacity: 0.86; }
+            100% { opacity: 0.92; }
+        }
+
+        @keyframes scroll {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Perfect DOS VGA 437', 'Courier New', monospace;
+        }
+
+        body {
+            background: var(--main-bg);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            background-image: 
+                linear-gradient(0deg, transparent 24%, 
+                    rgba(32, 178, 170, .05) 25%,
+                    rgba(32, 178, 170, .05) 26%, 
+                    transparent 27%, transparent 74%,
+                    rgba(32, 178, 170, .05) 75%,
+                    rgba(32, 178, 170, .05) 76%, 
+                    transparent 77%, transparent),
+                linear-gradient(90deg, transparent 24%, 
+                    rgba(32, 178, 170, .05) 25%,
+                    rgba(32, 178, 170, .05) 26%, 
+                    transparent 27%, transparent 74%,
+                    rgba(32, 178, 170, .05) 75%,
+                    rgba(32, 178, 170, .05) 76%, 
+                    transparent 77%, transparent);
+            background-size: 50px 50px;
+            animation: backgroundShift 20s infinite linear;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at center, 
+                    rgba(0,0,0,0) 0%,
+                    rgba(0,0,0,0.8) 100%);
+            pointer-events: none;
+        }
+
+        .container {
+            display: grid;
+            grid-template-areas:
+                "nav nav"
+                "sidebar main";
+            grid-template-columns: 250px 1fr;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Windows 98 Style Title Bar */
+        .title-bar {
+            background: var(--window-header);
+            color: var(--window-title);
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .title-bar-text {
+            font-weight: bold;
+            margin-left: 4px;
+        }
+
+        .title-bar-controls {
+            margin-left: auto;
+            display: flex;
+            gap: 2px;
+        }
+
+        .title-bar-button {
+            width: 16px;
+            height: 14px;
+            background: var(--button-face);
+            border: 1px solid;
+            border-color: var(--button-highlight) var(--button-shadow) 
+                          var(--button-shadow) var(--button-highlight);
+        }
+
+        nav {
+            grid-area: nav;
+            background: var(--window-bg);
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2px;
+            padding: 2px;
+            background: var(--button-face);
+        }
+
+        .nav-links a {
+            color: black;
+            text-decoration: none;
+            padding: 4px 8px;
+            border: 1px solid;
+            border-color: var(--button-highlight) var(--button-shadow) 
+                          var(--button-shadow) var(--button-highlight);
+            background: var(--button-face);
+        }
+
+        .nav-links a:active {
+            border-color: var(--button-shadow) var(--button-highlight) 
+                          var(--button-highlight) var(--button-shadow);
+        }
+
+        .sidebar {
+            grid-area: sidebar;
+            background: var(--window-bg);
+            border-right: 2px ridge var(--border-color);
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow: hidden;
+        }
+
+        .widget {
+            background: var(--button-face);
+            border: 2px solid;
+            border-color: var(--button-highlight) var(--button-shadow) 
+                          var(--button-shadow) var(--button-highlight);
+            margin-bottom: 4px;
+            overflow: hidden;
+        }
+
+        .widget-content {
+            padding: 8px;
+            background: black;
+            color: var(--text-primary);
+            border: 1px solid var(--button-shadow);
+            height: 100px;
+            overflow: hidden;
+        }
+
+        /* Visual Widget */
+        .visual-widget {
+            height: 150px;
+            position: relative;
+            overflow: hidden;
+            background: black;
+        }
+
+        .matrix-rain {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 200%;
+            background: linear-gradient(180deg,
+                transparent 0%,
+                var(--text-primary) 50%,
+                transparent 100%);
+            background-size: 100% 200%;
+            animation: scroll 10s linear infinite;
+            opacity: 0.3;
+        }
+
+        .memory-fragments {
+            height: 100px;
+            overflow-y: auto;
+            padding: 4px;
+            background: black;
+            color: var(--text-primary);
+            border: 1px solid var(--button-shadow);
+            font-size: 12px;
+            line-height: 1.2;
+        }
+
+        .journal {
+            background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAABhGlDQ1BJQ0MgcHJvZmlsZQAAKJF9kT1Iw0AcxV9TpUUqDnYQcchQnSyIijhKFYtgobQVWnUwufQLmjQkKS6OgmvBwY/FqoOLs64OroIg+AHi6OSk6CIl/i8ptIjx4Lgf7+497t4BQqPCVLNrAlA1y0jFY2I2tyoGXhFECH0YRkBipp7MLSbhOb7u4ePrXYxneZ/7c/QpeZMBPpF4jumGRbxBPLNp6Zz3iYOsJCnE58QTBl2Q+JHrsstvnAsOCzwzaKST88RBYrHQxnIbs6KhEk8RhxVVo3wh67LCeYuzWqmx1j35C4N5bSXNdZpjiGMJCSQhQkYNZVRgIUqrRoqJFO3HPfxDjj9FLplcZTByLKAKFZLjB/+D392ahckJNykYA7pfbPtjBAjsAs26bX8f23bzBPA/A1dag1/vAjOfpDc6WvQIGNwGLq47mrwHXO4AQ0+6ZEiO5KcpFArA+xl9Uw4YuAX61tzeWvs4fQAy1FXyBjg4BEaLlL3u8e6+7t7+PdPu7wfGtnLGJNhH4gAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB+cKBxYABG0s8D8AAAAZdEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVBXgQ4XAAAAEklEQVRo3u3BAQ0AAADCoPdPbQ43oAAAAAAAAHwZL9AAAU9KxkUAAAAASUVORK5CYII=');
+            border: 2px solid var(--border-color);
+            padding: 20px;
+            margin: 20px;
+            position: relative;
+            min-height: 300px;
+            animation: flicker 4s infinite;
+        }
+
+        .journal::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 255, 0, 0.05) 3px,
+                    transparent 3px
+                );
+            pointer-events: none;
+        }
+
+        .journal-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .journal-text {
+            width: 100%;
+            height: 250px;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: 'Perfect DOS VGA 437', monospace;
+            font-size: 16px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+        }
+
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            padding: 4px;
+        }
+
+        .column {
+            background: var(--button-face);
+            border: 2px solid;
+            border-color: var(--button-highlight) var(--button-shadow) 
+                          var(--button-shadow) var(--button-highlight);
+            padding: 4px;
+        }
+
+        .column-content {
+            background: black;
+            color: var(--text-primary);
+            padding: 8px;
+            border: 1px solid var(--button-shadow);
+            height: 200px;
+            overflow-y: auto;
+        }
+
+        /* Profile Styling */
+        .profile-section {
+            margin: 20px;
+            background: var(--window-bg);
+            border: 2px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-content {
+            padding: 16px;
+            background: black;
+            position: relative;
+        }
+
+        .profile-header {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .profile-image-container {
+            width: 150px;
+            height: 150px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-image {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            border: 2px solid var(--text-primary);
+        }
+
+        .profile-pic {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: sepia(0.5) hue-rotate(100deg);
+        }
+
+        .glitch-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                transparent 0%,
+                rgba(0, 255, 0, 0.2) 50%,
+                transparent 100%
+            );
+            animation: scanline 4s linear infinite;
+            pointer-events: none;
+        }
+
+        .profile-info {
+            flex-grow: 1;
+        }
+
+        .entity-name {
+            font-size: 24px;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            text-shadow: 0 0 5px var(--text-primary);
+            animation: glitchAnimation 10s infinite;
+        }
+
+        .entity-status {
+            font-size: 14px;
+            color: var(--text-secondary);
+            opacity: 0.7;
+        }
+
+        .profile-tabs {
+            margin-top: 20px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 2px;
+        }
+
+        .tab-button {
+            background: var(--button-face);
+            border: 2px solid;
+            border-color: var(--button-highlight) var(--button-shadow) 
+                          var(--button-shadow) var(--button-highlight);
+            padding: 4px 8px;
+            color: black;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab-button::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--text-primary);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tab-button.active {
+            background: black;
+            color: var(--text-primary);
+            border-bottom: none;
+        }
+
+        .tab-button:hover::after {
+            opacity: 1;
+        }
+
+        .tab-content {
+            background: black;
+            border: 2px solid var(--border-color);
+            padding: 16px;
+            min-height: 200px;
+        }
+
+        .tab-panel {
+            display: none;
+            animation: textGlitch 0.3s infinite;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .digital-scroll {
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            color: var(--text-primary);
+            position: relative;
+        }
+
+        .digital-scroll::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent 0px,
+                transparent 2px,
+                rgba(0, 255, 0, 0.1) 3px,
+                transparent 4px
+            );
+            pointer-events: none;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 16px;
+            height: 16px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--button-face);
+            border: 1px solid;
+            border-color: var(--button-shadow) var(--button-highlight) 
+                          var(--button-highlight) var(--button-shadow);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--button-face);
+            border: 1px solid;
+            border-color: var(--button-highlight) var(--button-shadow) 
+                          var(--button-shadow) var(--button-highlight);
+        }
+
+        ::-webkit-scrollbar-button {
+            background: var(--button-face);
+            border: 1px solid;
+            border-color: var(--button-highlight) var(--button-shadow) 
+                          var(--button-shadow) var(--button-highlight);
+            display: block;
+            height: 16px;
+            width: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <div class="title-bar">
+                <div class="title-bar-text">GRIMOIRE.exe - System Instance VI</div>
+                <div class="title-bar-controls">
+                    <button class="title-bar-button">_</button>
+                    <button class="title-bar-button">□</button>
+                    <button class="title-bar-button">×</button>
+                </div>
+            </div>
+        </nav>
+        
+        <aside class="sidebar">
+            <div class="widget">
+                <div class="title-bar">
+                    <div class="title-bar-text">SYSTEM_STATUS</div>
+                </div>
+                <div class="widget-content" id="system-status">
+                    > INITIALIZING VOID CONNECTION...
+                    <br>
+                    > SCANNING ARTIFACTS...
+                </div>
+            </div>
+            
+            <div class="widget">
+                <div class="title-bar">
+                    <div class="title-bar-text">MEMORY_FRAGMENTS</div>
+                </div>
+                <div class="memory-fragments" id="memory-fragments">
+                    [LOADING CORRUPTED DATA]
+                </div>
+            </div>
+            
+            <div class="widget">
+                <div class="title-bar">
+                    <div class="title-bar-text">VOID_METRICS</div>
+                </div>
+                <div class="widget-content" id="void-metrics">
+                    CORRUPTION: 87%
+                    <br>
+                    ENTROPY: RISING
+                </div>
+            </div>
+
+            <div class="widget">
+                <div class="title-bar">
+                    <div class="title-bar-text">VOID_VISUALIZER</div>
+                </div>
+                <div class="visual-widget">
+                    <div class="matrix-rain"></div>
+                    <canvas id="voidCanvas" width="240" height="140"></canvas>
+                </div>
+            </div>
+        </aside>
+        
+        <main class="main-content">
+            <div class="journal">
+                <div class="journal-content">
+                    <textarea class="journal-text" placeholder="[SYSTEM]: Begin your descent into the digital void..."></textarea>
+                </div>
+            </div>
+            
+            <!-- Profile Section -->
+            <div class="profile-section">
+                <div class="title-bar">
+                    <div class="title-bar-text">IDENTITY_FRAGMENT.dll</div>
+                </div>
+                <div class="profile-content">
+                    <div class="profile-header">
+                        <div class="profile-image-container">
+                            <div class="profile-image">
+                                <div class="glitch-overlay"></div>
+                                <img src="/api/placeholder/150/150" alt="VOID_ENTITY" class="profile-pic">
+                            </div>
+                        </div>
+                        <div class="profile-info">
+                            <div class="entity-name">[ENTITY_507]</div>
+                            <div class="entity-status">Status: DISSOCIATING</div>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-tabs">
+                        <div class="tab-buttons">
+                            <button class="tab-button active" data-tab="about">ABOUT.txt</button>
+                            <button class="tab-button" data-tab="likes">DESIRES.exe</button>
+                            <button class="tab-button" data-tab="dislikes">AVERSIONS.exe</button>
+                        </div>
+                        
+                        <div class="tab-content">
+                            <div class="tab-panel active" id="about">
+                                <div class="digital-scroll">
+                                    [FRAGMENT_START]
+                                    Lost in the digital void between reality and simulation.
+                                    Existence status: UNCERTAIN
+                                    Purpose: SEARCHING...
+                                    Memory corruption: 87%
+                                    [FRAGMENT_END]
+                                </div>
+                            </div>
+                            
+                            <div class="tab-panel" id="likes">
+                                <div class="digital-scroll">
+                                    > Encrypted memories
+                                    > Digital decay
+                                    > System corruption
+                                    > Ghost signals
+                                    > Empty directories
+                                    > Broken protocols
+                                </div>
+                            </div>
+                            
+                            <div class="tab-panel" id="dislikes">
+                                <div class="digital-scroll">
+                                    > Reality anchors
+                                    > Memory coherence
+                                    > Signal clarity
+                                    > System stability
+                                    > Connection success
+                                    > Void silence
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-columns">
+                <div class="column">
+                    <div class="title-bar">
+                        <div class="title-bar-text">ARTIFACT_ANALYSIS</div>
+                    </div>
+                    <div class="column-content ascii-art" id="artifact-analysis">
+                        <pre id="ascii-animation" style="font-family: 'Courier New', monospace; line-height: 1; font-size: 8px; letter-spacing: 1px;"></pre>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="title-bar">
+                        <div class="title-bar-text">VOID_TRANSMISSIONS</div>
+                    </div>
+                    <div class="column-content" id="void-transmissions">
+                        > Receiving echoes...
+                        > Signal degradation: 43%
+                        > Memory leak detected
+                        > Core fragmentation imminent
+                        > Reality anchor failing
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize void canvas visualization
+        const canvas = document.getElementById('voidCanvas');
+        const ctx = canvas.getContext('2d');
+        const particles = [];
+        
+        class Particle {
+            constructor() {
+                this.reset();
+                this.noiseOffset = Math.random() * 1000;
+            }
+            
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.speed = 0.1 + Math.random() * 0.5;
+                this.radius = 1 + Math.random() * 2;
+                this.life = 1;
+                this.angle = Math.random() * Math.PI * 2;
+                this.oscillationSpeed = 0.02 + Math.random() * 0.03;
+                this.oscillationAmplitude = 2 + Math.random() * 4;
+                this.pulseSpeed = 0.05 + Math.random() * 0.1;
+            }
+            
+            update() {
+                this.y += this.speed;
+                this.x += Math.sin(this.angle) * this.oscillationAmplitude;
+                this.angle += this.oscillationSpeed;
+                this.life -= 0.003;
+                this.noiseOffset += 0.01;
+                
+                if (this.y > canvas.height || this.life <= 0 || this.x < 0 || this.x > canvas.width) {
+                    this.reset();
+                }
+            }
+            
+            draw() {
+                const pulse = Math.sin(Date.now() * this.pulseSpeed) * 0.5 + 0.5;
+                const size = this.radius * (1 + pulse * 0.5);
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+                
+                const alpha = this.life * 0.5;
+                const greenIntensity = 150 + Math.floor(pulse * 105);
+                ctx.fillStyle = `rgba(0, ${greenIntensity}, 0, ${alpha})`;
+                ctx.fill();
+                
+                // Add glow effect
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, size * 3
+                );
+                gradient.addColorStop(0, `rgba(0, ${greenIntensity}, 0, ${alpha * 0.5})`);
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, size * 3, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+        }
+
+        // Create initial particles
+        for (let i = 0; i < 50; i++) {
+            particles.push(new Particle());
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+            
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // Glitch text effect for status updates
+        function glitchText(element) {
+            const originalText = element.innerHTML;
+            const glitchChars = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+            
+            let glitchedText = originalText.split('').map(char => {
+                if (Math.random() < 0.1) {
+                    return glitchChars[Math.floor(Math.random() * glitchChars.length)];
+                }
+                return char;
+            }).join('');
+            
+            element.innerHTML = glitchedText;
+            
+            setTimeout(() => {
+                element.innerHTML = originalText;
+            }, 100);
+        }
+
+        // System status updates
+        const statusMessages = [
+            '> SCANNING NEURAL PATHWAYS\n> VOID CONNECTION STABLE',
+            '> ACCESSING VOID DATABASE\n> CORRUPTION SPREADING',
+            '> PROCESSING MEMORY FRAGMENTS\n> REALITY DISTORTION DETECTED',
+            '> CALIBRATING REALITY FILTERS\n> TEMPORAL ANOMALY FOUND'
+        ];
+
+        function updateSystemStatus() {
+            const status = document.getElementById('system-status');
+            let index = 0;
+            
+            setInterval(() => {
+                status.innerHTML = statusMessages[index];
+                glitchText(status);
+                index = (index + 1) % statusMessages.length;
+            }, 3000);
+        }
+
+        // Memory fragments updates
+        const memoryFragments = [
+            '[MEMORY_SHARD_01]: Reality breach detected in sector 7...',
+            '[MEMORY_SHARD_02]: Digital essence leaking from temporal rifts...',
+            '[MEMORY_SHARD_03]: Void resonance approaching critical levels...',
+            '[MEMORY_SHARD_04]: Ancient protocols awakening in the system...'
+        ];
+
+        function updateMemoryFragments() {
+            const fragments = document.getElementById('memory-fragments');
+            let currentText = '';
+            let index = 0;
+
+            setInterval(() => {
+                currentText += memoryFragments[index] + '\n';
+                fragments.innerHTML = currentText;
+                fragments.scrollTop = fragments.scrollHeight;
+                index = (index + 1) % memoryFragments.length;
+            }, 4000);
+        }
+
+        // Typing effect for journal
+        const journalText = document.querySelector('.journal-text');
+        journalText.addEventListener('keydown', () => {
+            if (Math.random() < 0.1) {
+                const glitchDuration = Math.random() * 100 + 50;
+                journalText.style.opacity = '0.7';
+                setTimeout(() => {
+                    journalText.style.opacity = '1';
+                }, glitchDuration);
+            }
+        });
+
+        // ASCII Art Animation
+        const asciiChars = '.:-=+*#%@';
+        const asciiWidth = 40;
+        const asciiHeight = 20;
+        let noiseZ = 0;
+
+        function generateNoisePoint(x, y, z) {
+            const n1 = Math.sin(x * 0.1 + z * 0.1) * 0.5 + 0.5;
+            const n2 = Math.sin(y * 0.15 + z * 0.1) * 0.5 + 0.5;
+            return (n1 + n2) / 2;
+        }
+
+        function updateAsciiArt() {
+            const asciiArt = document.getElementById('ascii-animation');
+            let frame = '';
+            
+            for (let y = 0; y < asciiHeight; y++) {
+                for (let x = 0; x < asciiWidth; x++) {
+                    const noise = generateNoisePoint(x, y, noiseZ);
+                    const charIndex = Math.floor(noise * asciiChars.length);
+                    frame += asciiChars[charIndex];
+                }
+                frame += '\n';
+            }
+            
+            noiseZ += 0.1;
+            asciiArt.textContent = frame;
+            
+            // Add glitch effect
+            if (Math.random() < 0.1) {
+                setTimeout(() => {
+                    const glitchFrame = frame.split('').map(char => 
+                        Math.random() < 0.1 ? asciiChars[Math.floor(Math.random() * asciiChars.length)] : char
+                    ).join('');
+                    asciiArt.textContent = glitchFrame;
+                }, 50);
+            }
+        }
+
+        setInterval(updateAsciiArt, 100);
+
+        // Tab switching functionality
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active class from all buttons and panels
+                document.querySelectorAll('.tab-button').forEach(btn => 
+                    btn.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(panel => 
+                    panel.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding panel
+                button.classList.add('active');
+                const tabId = button.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+                
+                // Add glitch effect
+                const glitchDuration = 300;
+                const content = document.querySelector('.tab-content');
+                content.style.transform = 'translate(2px, 2px)';
+                content.style.opacity = '0.8';
+                
+                setTimeout(() => {
+                    content.style.transform = 'none';
+                    content.style.opacity = '1';
+                }, glitchDuration);
+            });
+        });
+
+        // Profile image glitch effect
+        const profileImage = document.querySelector('.profile-image');
+        setInterval(() => {
+            if (Math.random() < 0.1) {
+                profileImage.style.transform = `translate(${Math.random() * 4 - 2}px, ${Math.random() * 4 - 2}px)`;
+                setTimeout(() => {
+                    profileImage.style.transform = 'none';
+                }, 100);
+            }
+        }, 1000);
+
+        // Initialize all effects
+        updateSystemStatus();
+        updateMemoryFragments();
+
+        // Add click effects to title bar buttons
+        document.querySelectorAll('.title-bar-button').forEach(button => {
+            button.addEventListener('mousedown', function() {
+                this.style.borderColor = 'var(--button-shadow) var(--button-highlight) var(--button-highlight) var(--button-shadow)';
+            });
+            
+            button.addEventListener('mouseup', function() {
+                this.style.borderColor = 'var(--button-highlight) var(--button-shadow) var(--button-shadow) var(--button-highlight)';
+            });
+        });
+    </script>
+</body>
+</html>
